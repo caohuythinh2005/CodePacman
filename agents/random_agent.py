@@ -1,6 +1,6 @@
 import random
 from agent import Agent
-from core.directions import Directions
+from envs.directions import Directions
 from typing import Any
 
 class RandomAgent(Agent):

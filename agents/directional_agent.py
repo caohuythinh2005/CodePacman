@@ -1,4 +1,4 @@
-from agents import Agent
+# from agents import Agent
 
-class DirectionalAgent(Agent):
-    def getAction(self, gam)
+# class DirectionalAgent(Agent):
+#     def getAction(self, gam)
