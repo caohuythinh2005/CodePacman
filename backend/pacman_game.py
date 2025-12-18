@@ -1,8 +1,5 @@
 import numpy as np
-import os
-import json
-
-from envs.game_state import GameState, AgentInfo, GhostInfo, serialize_state
+from envs.game_state import GameState, AgentInfo, GhostInfo
 from envs import layouts
 from ui.renderers import BaseDisplay
 
@@ -14,25 +11,9 @@ class PacmanGame:
         self.last_actions = {}
         self.display = display
 
-        log_dir = os.path.join(os.path.dirname(__file__), "../logs")
-        os.makedirs(log_dir, exist_ok=True)
-        self.state_log_file = os.path.join(log_dir, "states.jsonl")
-
-        with open(self.state_log_file, "w", encoding="utf-8"):
-            pass
-
         # Init UI
         if self.display:
             self.display.initialize(self.state)
-
-        # Log initial state
-        self.log_state()
-
-
-    # -------- LOG STATE (ONLY GameState) --------
-    def log_state(self):
-        with open(self.state_log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(serialize_state(self.state)) + "\n")
 
     # -------- MAP LOADING --------
     def load_map(self, file_path: str) -> GameState:
@@ -76,9 +57,6 @@ class PacmanGame:
     def get_state(self) -> GameState:
         return self.state
 
-    def serialize_state(self) -> dict:
-        return serialize_state(self.state)
-
     # -------- PACMAN --------
     def move_pacman(self, action: str):
         pac = self.state.pacman
@@ -121,7 +99,6 @@ class PacmanGame:
         if not np.any(self.state.object_matrix == layouts.FOOD):
             self.state.win = True
 
-    # -------- GHOSTS --------
     def move_ghosts(self, ghost_idx: int, action: str):
         ghost = self.state.ghosts[ghost_idx]
         action_map = {
@@ -131,14 +108,22 @@ class PacmanGame:
             "West": (-1, 0)
         }
 
-        if action in action_map:
-            dx, dy = action_map[action]
-            nx, ny = ghost.x + dx, ghost.y + dy
-            H, W = self.state.object_matrix.shape
+        if action not in action_map:
+            return
 
-            if 0 <= nx < W and 0 <= ny < H and self.state.object_matrix[ny, nx] != layouts.WALL:
-                ghost.x, ghost.y = nx, ny
-                ghost.dir = {"North":1, "East":2, "South":3, "West":4}[action]
+        dx, dy = action_map[action]
+        nx, ny = ghost.x + dx, ghost.y + dy
+        H, W = self.state.object_matrix.shape
+
+        # Kiểm tra va chạm với tường
+        if 0 <= nx < W and 0 <= ny < H and self.state.object_matrix[ny, nx] != layouts.WALL:
+            # Xóa ghost cũ khỏi object_matrix
+            self.state.object_matrix[ghost.y, ghost.x] = layouts.EMPTY
+            # Cập nhật ghost
+            ghost.x, ghost.y = nx, ny
+            ghost.dir = {"North":1, "East":2, "South":3, "West":4}[action]
+            # Đặt ghost mới vào object_matrix
+            self.state.object_matrix[ny, nx] = getattr(layouts, f"GHOST{ghost_idx+1}", layouts.GHOST1)
 
         if ghost.scared_timer > 0:
             ghost.scared_timer -= 1
@@ -152,6 +137,7 @@ class PacmanGame:
             else:
                 self.state.lose = True
 
+                
     # -------- APPLY ACTION --------
     def apply_action(self, agent_idx: int, action: str):
         self.last_actions[agent_idx] = action
@@ -161,10 +147,13 @@ class PacmanGame:
         else:
             self.move_ghosts(agent_idx - 1, action)
 
-        # LOG STATE AFTER ACTION
-        self.log_state()
+        return True
 
-        self.draw_ui()
+    # -------- TICK LOOP -----------
+    def draw_ui_tick(self):
+        """Gọi trong game_loop hoặc UI loop, khoảng 20-50ms 1 lần"""
+        if self.display:
+            self.display.update(self.state)
 
     # -------- UI / GAME OVER --------
     def check_game_over(self) -> bool:

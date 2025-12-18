@@ -32,7 +32,7 @@ class ControlPanel(tk.Frame):
         self.bind_all("<Key>", self.on_key)
         self._init_agent_panels()
         self._bootstrap_agents()
-        self._ensure_backend_connected()  # auto connect backend
+        self._ensure_backend_connected()
         self._poll_agent_actions()
 
     # ---- UI Widgets ----
@@ -100,7 +100,7 @@ class ControlPanel(tk.Frame):
             default_algo = self._agent_algo_vars[i].get()
             self._on_algo_selected(i, default_algo)
 
-    # ---- Always try connect backend ----
+    # ---- Ensure backend connected ----
     def _ensure_backend_connected(self):
         if not self.client:
             self.client = SocketClient(HOST, PORT)
@@ -176,7 +176,6 @@ class ControlPanel(tk.Frame):
 
     # ---- Polling Agent Actions ----
     def _poll_agent_actions(self):
-        # retry backend if disconnected
         if not self.client or not self.client.sock:
             self._ensure_backend_connected()
         else:
