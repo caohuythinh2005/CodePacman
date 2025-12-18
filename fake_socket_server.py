@@ -1,30 +1,34 @@
 import socket
 import json
 import numpy as np
-from envs.game_state import GameState
 import time
-from envs.game_state import serialize_state
+from envs.game_state import GameState, AgentInfo, GhostInfo, serialize_state
+from envs import layouts
+from config.socket_config import HOST, PORT
 
-HOST = "127.0.0.1"
-PORT = 50008
 
-# Fake game state
+
+# -------------------------
+# Fake game state (demo)
+# -------------------------
 fake_state = GameState(
     object_matrix=np.array([
-        [1, 1, 1, 1, 1],
-        [1, 0, 0, 0, 1],
-        [1, 0, 4, 0, 1],
-        [1, 0, 0, 5, 1],
-        [1, 1, 1, 1, 1]
+        [layouts.WALL, layouts.WALL, layouts.WALL, layouts.WALL, layouts.WALL],
+        [layouts.WALL, layouts.EMPTY, layouts.EMPTY, layouts.EMPTY, layouts.WALL],
+        [layouts.WALL, layouts.EMPTY, layouts.PACMAN, layouts.EMPTY, layouts.WALL],
+        [layouts.WALL, layouts.EMPTY, layouts.EMPTY, layouts.GHOST1, layouts.WALL],
+        [layouts.WALL, layouts.WALL, layouts.WALL, layouts.WALL, layouts.WALL]
     ]),
-    infor_vector=np.array([2, 2, 3, 3] + [0]*21),  # giữ tên infor_vector
+    pacman=AgentInfo(x=2, y=2, dir=0),
+    ghosts=[GhostInfo(x=3, y=3, dir=0, scared_timer=0)],
     score=0.0,
     win=False,
     lose=False
 )
 
-
-
+# -------------------------
+# Socket server
+# -------------------------
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((HOST, PORT))
@@ -46,7 +50,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         continue
 
                     if msg.get("type") == "request_state":
-                        # Send game state
+                        # Send serialized game state
                         conn.sendall(json.dumps({
                             "type": "state",
                             "state": serialize_state(fake_state)
