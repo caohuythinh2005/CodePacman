@@ -12,4 +12,19 @@ GHOST1 = 5      # ghost loại 1
 GHOST2 = 6      # ghost loại 2
 GHOST3 = 7      # ghost loại 3
 GHOST4 = 8      # ghost loại 4
+
+# -------------------------
+GRID_SIZE = 20
+PACMAN_RADIUS = 0.4
+FOOD_RADIUS = 0.1
+CAPSULE_RADIUS = 0.25
+GHOST_RADIUS = 0.4
+WALL_COLOR = "#0033FF"
+WALL_OUTLINE = "#3355FF"
+FOOD_COLOR = "white"
+CAPSULE_COLOR = "yellow"
+PACMAN_COLOR = "yellow"
+GHOST_COLORS = ["#FF0000", "#FFB8FF", "#00FFFF", "#FFB852"]
+SCARED_COLOR = "#0000FF"
+
 # -------------------------

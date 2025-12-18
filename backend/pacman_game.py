@@ -1,20 +1,24 @@
 import numpy as np
 from envs.game_state import GameState, AgentInfo, GhostInfo, serialize_state
 from envs import layouts
+from ui.renderers import BaseDisplay
 
 class PacmanGame:
-    def __init__(self, map_file: str):
-        """Khởi tạo game từ file map"""
+    def __init__(self, map_file: str, display: BaseDisplay = None):
         self.map_file = map_file
         self.state = self.load_map(map_file)
         self.last_actions = {}
+        self.display = display
+
+        # Nếu có display, khởi tạo cửa sổ và vẽ các vật thể tĩnh ban đầu
+        if self.display:
+            self.display.initialize(self.state)
 
     def load_map(self, file_path: str) -> GameState:
         with open(file_path, "r") as f:
-            lines = [line.rstrip("\n") for line in f.readlines() if line.strip()]
+            lines = [line.rstrip("\n") for line in f if line.strip()]
 
-        H = len(lines)
-        W = len(lines[0])
+        H, W = len(lines), len(lines[0])
         object_matrix = np.zeros((H, W), dtype=int)
         pacman = None
         ghosts = []
@@ -29,7 +33,7 @@ class PacmanGame:
                     object_matrix[y, x] = layouts.CAPSULE
                 elif ch == 'P':
                     object_matrix[y, x] = layouts.PACMAN
-                    pacman = AgentInfo(x=x, y=y, dir=0)
+                    pacman = AgentInfo(x=x, y=y, dir=2)
                 elif ch == 'G':
                     ghost_id = len(ghosts)
                     object_matrix[y, x] = getattr(layouts, f"GHOST{ghost_id+1}", layouts.GHOST1)
@@ -54,10 +58,16 @@ class PacmanGame:
 
     def move_pacman(self, action: str):
         pac = self.state.pacman
+        action_map = {"North": 1, "East": 2, "South": 3, "West": 4}
+        if action in action_map:
+            pac.dir = action_map[action]
+
+        # TODO: Tính nx, ny dựa trên dir, kiểm tra tường
         print(f"[Debug] Pacman at ({pac.x}, {pac.y}) moves {action}")
 
     def move_ghosts(self):
         for g in self.state.ghosts:
+            # TODO: AI di chuyển ghost
             print(f"[Debug] Ghost at ({g.x}, {g.y}) moves randomly")
 
     def apply_action(self, agent_idx: int, action: str):
@@ -65,34 +75,24 @@ class PacmanGame:
         if agent_idx == 0:
             self.move_pacman(action)
         else:
-            print(f"[Debug] Agent {agent_idx} action: {action}")
+            self.move_ghosts()
 
+        # Cập nhật giao diện
+        self.draw_ui()
 
     def check_game_over(self) -> bool:
+        if self.state.win or self.state.lose:
+            if self.display:
+                self.display.finish()
+            return True
         return False
 
-    def update_score(self):
-        pass
-
     def draw_ui(self):
-        """Vẽ map đơn giản ra console"""
-        mat = self.state.object_matrix
-        H, W = mat.shape
-        for y in range(H):
-            line = ""
-            for x in range(W):
-                val = mat[y, x]
-                if val == layouts.WALL:
-                    line += "%"
-                elif val == layouts.FOOD:
-                    line += "."
-                elif val == layouts.CAPSULE:
-                    line += "o"
-                elif val == layouts.PACMAN:
-                    line += "P"
-                elif val in [layouts.GHOST1, layouts.GHOST2, layouts.GHOST3, layouts.GHOST4]:
-                    line += "G"
-                else:
-                    line += " "
-            print(line)
-        print(f"Score: {self.state.score}, Last actions: {self.last_actions}")
+        if self.display:
+            self.display.update(self.state)
+        else:
+            print(f"Score: {self.state.score} | Last actions: {self.last_actions}")
+
+    def update_score(self, delta: float):
+        self.state.score += delta
+        self.draw_ui()
