@@ -12,6 +12,7 @@ class TkinterDisplay(BaseDisplay):
         self.shapes = {}       
         self.pacman_shape = None
         self.ghost_shapes = {}
+        
 
         # Lấy hằng số từ layouts.py
         self.PACMAN_RADIUS = layouts.PACMAN_RADIUS
@@ -29,8 +30,15 @@ class TkinterDisplay(BaseDisplay):
     def initialize(self, state: GameState):
         h, w = state.object_matrix.shape
         graphicsUtils.begin_graphics(w * self.grid_size, (h + 1) * self.grid_size)
+
         self.canvas = graphicsUtils._canvas
-        self.score_id = graphicsUtils.text((10, h * self.grid_size + 5), "white", "Score: 0")
+
+        self.root = graphicsUtils._root_window
+
+        self.score_id = graphicsUtils.text(
+            (10, h * self.grid_size + 5), "white", "Score: 0"
+        )
+
 
     def update(self, state: GameState):
         mat = state.object_matrix
@@ -74,7 +82,7 @@ class TkinterDisplay(BaseDisplay):
 
         graphicsUtils.changeText(self.score_id, f"Score: {int(state.score)}")
         graphicsUtils.refresh()
-        graphicsUtils.sleep(self.frame_time)
+        # graphicsUtils.sleep(self.frame_time)
 
     def _render_pacman(self, x, y, dir):
         if self.pacman_shape:
@@ -99,3 +107,19 @@ class TkinterDisplay(BaseDisplay):
 
     def finish(self):
         graphicsUtils.end_graphics()
+
+    def after(self, delay_ms, callback):
+        from . import graphicsUtils
+        if graphicsUtils._root_window:
+            graphicsUtils._root_window.after(delay_ms, callback)
+
+    def mainloop(self):
+        from . import graphicsUtils
+        if graphicsUtils._root_window:
+            graphicsUtils._root_window.mainloop()
+
+    def get_root(self): 
+        return graphicsUtils._root_window
+    
+    
+        return graphicsUtils._root_window
