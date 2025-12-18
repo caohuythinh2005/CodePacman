@@ -57,7 +57,7 @@ class Actions:
 
         possible: List[str] = []
 
-        for direction, (dx, dy) in Actions._dỉrectionsAsList:
+        for direction, (dx, dy) in Actions._directionsAsList:
             nx, ny = x + dx, y + dy
             if nx < 0 or ny < 0 or nx >= W or ny >= H:
                 continue

@@ -3,6 +3,7 @@ import json
 import numpy as np
 from envs.game_state import GameState
 import time
+from envs.game_state import serialize_state
 
 HOST = "127.0.0.1"
 PORT = 50008
@@ -16,20 +17,13 @@ fake_state = GameState(
         [1, 0, 0, 5, 1],
         [1, 1, 1, 1, 1]
     ]),
-    info_vector=np.array([2, 2, 3, 3] + [0]*21),
+    infor_vector=np.array([2, 2, 3, 3] + [0]*21),  # giữ tên infor_vector
     score=0.0,
     win=False,
     lose=False
 )
 
-def serialize_state(state: GameState) -> dict:
-    return {
-        "object_matrix": state.object_matrix.tolist(),
-        "info_vector": state.info_vector.tolist(),
-        "score": state.score,
-        "win": state.win,
-        "lose": state.lose
-    }
+
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -48,7 +42,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                         break
                     try:
                         msg = json.loads(data.decode("utf-8"))
-                    except Exception:
+                    except json.JSONDecodeError:
                         continue
 
                     if msg.get("type") == "request_state":
