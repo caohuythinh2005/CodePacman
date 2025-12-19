@@ -12,7 +12,7 @@ class TkinterDisplay(BaseDisplay):
         self.grid_size = layouts.GRID_SIZE
         self.shapes = {}
         self.pacman_shape = None
-        self.ghost_shapes = {}
+        self.ghost_shapes = {}  # ghost_idx -> list of canvas IDs
 
         self._root = None
         self._canvas = None
@@ -69,14 +69,6 @@ class TkinterDisplay(BaseDisplay):
         return self._canvas.create_arc(x0, y0, x1, y1, outline=outlineColor, fill=fillColor,
                                        extent=e[1] - e[0], start=e[0], style="pieslice", width=width)
 
-    def _polygon(self, coords, outlineColor, fillColor=None, filled=1, width=1):
-        c = []
-        for coord in coords:
-            c.extend([coord[0], coord[1]])
-        if fillColor is None: fillColor = outlineColor
-        if not filled: fillColor = ""
-        return self._canvas.create_polygon(c, outline=outlineColor, fill=fillColor, width=width)
-
     def _text(self, pos, color, contents, size=12, style="normal", anchor="nw"):
         return self._canvas.create_text(pos[0], pos[1], fill=color, text=contents,
                                         font=("Courier", str(size), style), anchor=anchor)
@@ -97,7 +89,6 @@ class TkinterDisplay(BaseDisplay):
             self._root = None
             self._canvas = None
 
-
     def initialize(self, state: GameState):
         h, w = state.object_matrix.shape
         self._begin_graphics(w * self.grid_size, (h + 1) * self.grid_size)
@@ -117,12 +108,25 @@ class TkinterDisplay(BaseDisplay):
                             x0, y0, x1, y1, fill=self.WALL_COLOR, outline=self.WALL_OUTLINE
                         )
 
-                elif val in (layouts.FOOD, layouts.CAPSULE):
+                elif val == layouts.FOOD:
                     if pos not in self.shapes:
-                        radius = self.CAPSULE_RADIUS if val == layouts.CAPSULE else self.FOOD_RADIUS
-                        color = self.CAPSULE_COLOR if val == layouts.CAPSULE else self.FOOD_COLOR
-                        sp = ((x + 0.5) * self.grid_size, (y + 0.5) * self.grid_size)
-                        self.shapes[pos] = self._circle(sp, self.grid_size * radius, color, color)
+                        r = self.grid_size * self.FOOD_RADIUS
+                        cx, cy = (x + 0.5) * self.grid_size, (y + 0.5) * self.grid_size
+                        self.shapes[pos] = self._canvas.create_rectangle(
+                            cx - r, cy - r, cx + r, cy + r,
+                            fill=self.FOOD_COLOR, outline=""
+                        )
+
+                elif val == layouts.CAPSULE:
+                    color = self.CAPSULE_COLOR if int(time.time() * 4) % 2 == 0 else "white"
+                    if pos in self.shapes:
+                        self._canvas.itemconfig(self.shapes[pos], fill=color, outline=color)
+                    else:
+                        r = self.grid_size * self.CAPSULE_RADIUS
+                        cx, cy = (x + 0.5) * self.grid_size, (y + 0.5) * self.grid_size
+                        self.shapes[pos] = self._canvas.create_oval(
+                            cx - r, cy - r, cx + r, cy + r, fill=color, outline=color
+                        )
 
                 else:
                     if pos in self.shapes and val not in (layouts.WALL, layouts.PACMAN,
@@ -140,35 +144,62 @@ class TkinterDisplay(BaseDisplay):
         self._changeText(self.score_id, f"Score: {int(state.score)}")
         self._refresh()
 
-    def _render_pacman(self, x, y, dir):
+    def _clear_ghost(self, idx):
+        if idx in self.ghost_shapes:
+            for id in self.ghost_shapes[idx]:
+                self._remove_from_screen(id)
+            self.ghost_shapes[idx] = []
+
+    def _render_pacman(self, x, y, direction):
         if self.pacman_shape:
             self._remove_from_screen(self.pacman_shape)
-        sp = (x * self.grid_size + self.grid_size / 2, y * self.grid_size + self.grid_size / 2)
-        angles = {1: 90, 2: 0, 3: 270, 4: 180}.get(dir, 0)
-        width = 30 + 80 * math.sin(math.pi * ((x % 1) + (y % 1)))
-        self.pacman_shape = self._circle(sp, self.grid_size * self.PACMAN_RADIUS,
-                                        self.PACMAN_COLOR, self.PACMAN_COLOR,
-                                        endpoints=(angles + width / 2, angles - width / 2))
+
+        cx = x * self.grid_size + self.grid_size / 2
+        cy = y * self.grid_size + self.grid_size / 2
+        r = self.grid_size * self.PACMAN_RADIUS
+
+        angle_map = {"North": 90, "South": 270, "East": 0, "West": 180, "Stop": 0}
+        base_angle = angle_map.get(direction, 0)
+        mouth_width = 45 * abs(math.sin(time.time() * 18))
+        
+        self.pacman_shape = self._canvas.create_arc(
+            cx - r, cy - r, cx + r, cy + r,
+            fill=self.PACMAN_COLOR, outline=self.PACMAN_COLOR,
+            start=base_angle + (mouth_width / 2),
+            extent=360 - mouth_width, style="pieslice"
+        )
 
     def _render_ghost(self, val, x, y, state):
         idx = val - layouts.GHOST1
-        if idx in self.ghost_shapes:
-            self._remove_from_screen(self.ghost_shapes[idx])
-        sp = (x * self.grid_size + self.grid_size / 2, y * self.grid_size + self.grid_size / 2)
-        color = self.SCARED_COLOR if getattr(state, 'is_ghost_scared', lambda i: False)(idx) else \
-            self.GHOST_COLORS[idx % len(self.GHOST_COLORS)]
-        self.ghost_shapes[idx] = self._circle(sp, self.grid_size * self.GHOST_RADIUS, color, color)
+        self._clear_ghost(idx)
+        self.ghost_shapes[idx] = []
+
+        cx, cy = (x + 0.5) * self.grid_size, (y + 0.5) * self.grid_size
+        r = self.grid_size * self.GHOST_RADIUS
+        scared = state.is_ghost_scared(idx) if hasattr(state, "is_ghost_scared") else False
+        color = self.SCARED_COLOR if scared else self.GHOST_COLORS[idx % len(self.GHOST_COLORS)]
+
+        # Body
+        self.ghost_shapes[idx].append(self._canvas.create_arc(cx-r, cy-r, cx+r, cy+r/2, start=0, extent=180, fill=color, outline=color))
+        self.ghost_shapes[idx].append(self._canvas.create_rectangle(cx-r, cy, cx+r, cy+r*0.7, fill=color, outline=color))
+        
+        # Feet
+        for i in range(3):
+            x0 = (cx - r) + (i * (2*r/3))
+            self.ghost_shapes[idx].append(self._canvas.create_oval(x0, cy+r*0.5, x0+(2*r/3), cy+r, fill=color, outline=color))
+
+        # Eyes
+        for offset in [-0.4, 0.4]:
+            ex, ey = cx + offset * r, cy - r*0.3
+            self.ghost_shapes[idx].append(self._canvas.create_oval(ex-3, ey-4, ex+3, ey+4, fill="white", outline="white"))
+            if not scared:
+                self.ghost_shapes[idx].append(self._canvas.create_oval(ex-1, ey-1, ex+1, ey+1, fill="black"))
 
     def finish(self):
         self._end_graphics()
 
-    def after(self, delay_ms, callback):
-        if self._root:
-            self._root.after(delay_ms, callback)
-
     def mainloop(self):
-        if self._root:
-            self._root.mainloop()
+        if self._root: self._root.mainloop()
 
     def get_root(self):
         return self._root
