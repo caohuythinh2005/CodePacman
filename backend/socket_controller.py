@@ -25,15 +25,11 @@ ACTION_LOG_FILE = os.path.join(LOG_DIR, "actions.jsonl")
 
 log_lock = threading.Lock()
 
-# -------------------------------
-# Game init (ENGINE ONLY)
-# -------------------------------
+
 MAP_FILE = os.path.join(BASE_DIR, "../maps/mediumClassic.map")
 game = PacmanGame(MAP_FILE)
 
-# -------------------------------
-# Utils
-# -------------------------------
+
 def read_latest_state_from_log():
     """Read last JSON line from states.jsonl"""
     if not os.path.exists(STATE_LOG_FILE):
@@ -61,9 +57,7 @@ def log_action(agent_idx, action):
         with open(ACTION_LOG_FILE, "a", encoding="utf-8") as f:
             f.write(json.dumps(record) + "\n")
 
-# -------------------------------
-# Socket handler
-# -------------------------------
+
 def handle_client(conn, addr):
     print(f"[Backend] New connection from: {addr}")
     buffer = ""
@@ -90,9 +84,7 @@ def handle_client(conn, addr):
 
                 msg_type = msg.get("type")
 
-                # -----------------------
-                # REQUEST STATE
-                # -----------------------
+
                 if msg_type == "request_state":
                     state = read_latest_state_from_log()
                     res = {
@@ -101,9 +93,7 @@ def handle_client(conn, addr):
                     }
                     conn.sendall((json.dumps(res) + "\n").encode("utf-8"))
 
-                # -----------------------
-                # ACTION
-                # -----------------------
+
                 elif msg_type == "action":
                     agent_idx = msg.get("agent")
                     action = msg.get("action")
@@ -111,9 +101,7 @@ def handle_client(conn, addr):
                     game.apply_action(agent_idx, action)
                     log_action(agent_idx, action)
 
-                # -----------------------
-                # STATUS
-                # -----------------------
+
                 elif msg_type == "get_status":
                     res = {
                         "type": "status",
@@ -129,9 +117,7 @@ def handle_client(conn, addr):
     finally:
         conn.close()
 
-# -------------------------------
-# Server
-# -------------------------------
+
 def start_server():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -155,8 +141,6 @@ def start_server():
     finally:
         s.close()
 
-# -------------------------------
-# Main
-# -------------------------------
+
 if __name__ == "__main__":
     start_server()

@@ -29,7 +29,7 @@ def main():
                 time.sleep(2)
                 continue
 
-            print(f"[Worker {agent_idx}] Connected, running algo: {algo}")
+            print(f"--- [Agent {agent_idx} | Algo: {algo}] Running ---")
 
             while True:
                 client.send({"type": "request_state", "agent": agent_idx})
@@ -44,7 +44,10 @@ def main():
 
                 game_state = deserialize_state(msg.get("state"))
                 action = agent.getAction(game_state)
+                
                 if action:
+                    print(f"[ACTION] Agent {agent_idx} quyết định chọn: {action}")
+                    
                     client.send({"type": "action", "agent": agent_idx, "action": action})
 
                 time.sleep(0.05)

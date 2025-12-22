@@ -16,7 +16,7 @@ class ControlPanel(tk.Frame):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
         self.client = None
-        self._algo_procs = {}         # all agents
+        self._algo_procs = {}         
         self._agent_algo_vars = {}
         self._agent_status_texts = {}
         self._agent_key_rects = {}
@@ -112,22 +112,28 @@ class ControlPanel(tk.Frame):
         self._start_algo_process(agent_idx, algo)
 
     def _start_algo_process(self, agent_idx, algo):
-        self._stop_algo_process(agent_idx)
-        worker_path = os.path.join(PROJECT_ROOT, "workers", "agent_worker.py")
-        if not os.path.exists(worker_path):
-            print(f"[UI] Worker not found: {worker_path}")
-            return
+            self._stop_algo_process(agent_idx)
+            worker_path = os.path.join(PROJECT_ROOT, "workers", "agent_worker.py")
+            if not os.path.exists(worker_path):
+                print(f"[UI] Worker not found: {worker_path}")
+                return
 
-        env = os.environ.copy()
-        env["PYTHONPATH"] = PROJECT_ROOT + os.pathsep + env.get("PYTHONPATH", "")
+            env = os.environ.copy()
+            env["PYTHONPATH"] = PROJECT_ROOT + os.pathsep + env.get("PYTHONPATH", "")
 
-        print(f"[UI] Starting worker for agent {agent_idx} ({algo})")
-        self._algo_procs[agent_idx] = subprocess.Popen(
-            [sys.executable, worker_path, str(agent_idx), algo],
-            env=env,
-            cwd=PROJECT_ROOT,
-            stdout=subprocess.DEVNULL
-        )
+            window_title = f"AGENT_{agent_idx}_{algo}"
+            
+            print(f"[UI] Launching dedicated console for Agent {agent_idx}")
+
+            cmd_args = f'start "{window_title}" "{sys.executable}" "{worker_path}" {agent_idx} {algo}'
+
+            self._algo_procs[agent_idx] = subprocess.Popen(
+                cmd_args,
+                env=env,
+                cwd=PROJECT_ROOT,
+                shell=True, 
+                creationflags=subprocess.CREATE_NEW_CONSOLE
+            )
 
     def _stop_algo_process(self, agent_idx):
         proc = self._algo_procs.pop(agent_idx, None)

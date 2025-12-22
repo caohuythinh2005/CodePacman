@@ -9,7 +9,7 @@ from .renderers import BaseDisplay
 class TkinterDisplay(BaseDisplay):
     def __init__(self, zoom: float = 1.0, frame_time: float = 0.0, title="Pacman"):
         super().__init__(zoom=zoom, frame_time=frame_time)
-        self.grid_size = layouts.GRID_SIZE
+        self.grid_size = layouts.GRID_SIZE * zoom 
         self.shapes = {}
         self.pacman_shape = None
         self.ghost_shapes = {} 
@@ -136,7 +136,8 @@ class TkinterDisplay(BaseDisplay):
                         del self.shapes[pos]
 
                 if val == layouts.PACMAN:
-                    self._render_pacman(x, y, state.pacman.dir)
+                    d = state.pacman.dir if state.pacman else "Stop"
+                    self._render_pacman(x, y, d)
 
                 if val in (layouts.GHOST1, layouts.GHOST2, layouts.GHOST3, layouts.GHOST4):
                     self._render_ghost(val, x, y, state)
@@ -151,7 +152,6 @@ class TkinterDisplay(BaseDisplay):
             self.ghost_shapes[idx] = []
 
     def _render_pacman(self, x, y, direction):
-        print(direction)
         if self.pacman_shape:
             self._remove_from_screen(self.pacman_shape)
 
@@ -159,15 +159,27 @@ class TkinterDisplay(BaseDisplay):
         cy = y * self.grid_size + self.grid_size / 2
         r = self.grid_size * self.PACMAN_RADIUS
 
-        angle_map = {"North": 90, "South": 270, "East": 0, "West": 180, "Stop": 0}
-        base_angle = angle_map.get(direction, 0)
+        angle_map = {
+            "North": 90, "South": 270, "East": 0, "West": 180,
+            "Up": 90, "Down": 270, "Left": 180, "Right": 0,
+            "Stop": 0,
+            1: 90, 2: 0, 3: 270, 4: 180, 0: 0,
+            "1": 90, "2": 0, "3": 270, "4": 180, "0": 0
+        }
+        
+        # Lấy góc, fallback về 0 (East) nếu không tìm thấy
+        base_angle = angle_map.get(direction, None)
+        if base_angle is None:
+            base_angle = angle_map.get(str(direction), 0)
+
         mouth_width = 45 * abs(math.sin(time.time() * 18))
         
         self.pacman_shape = self._canvas.create_arc(
             cx - r, cy - r, cx + r, cy + r,
             fill=self.PACMAN_COLOR, outline=self.PACMAN_COLOR,
             start=base_angle + (mouth_width / 2),
-            extent=360 - mouth_width, style="pieslice"
+            extent=360 - mouth_width, 
+            style="pieslice"
         )
 
     def _render_ghost(self, val, x, y, state):
@@ -180,16 +192,13 @@ class TkinterDisplay(BaseDisplay):
         scared = state.is_ghost_scared(idx) if hasattr(state, "is_ghost_scared") else False
         color = self.SCARED_COLOR if scared else self.GHOST_COLORS[idx % len(self.GHOST_COLORS)]
 
-        # Body
         self.ghost_shapes[idx].append(self._canvas.create_arc(cx-r, cy-r, cx+r, cy+r/2, start=0, extent=180, fill=color, outline=color))
         self.ghost_shapes[idx].append(self._canvas.create_rectangle(cx-r, cy, cx+r, cy+r*0.7, fill=color, outline=color))
         
-        # Feet
         for i in range(3):
             x0 = (cx - r) + (i * (2*r/3))
             self.ghost_shapes[idx].append(self._canvas.create_oval(x0, cy+r*0.5, x0+(2*r/3), cy+r, fill=color, outline=color))
 
-        # Eyes
         for offset in [-0.4, 0.4]:
             ex, ey = cx + offset * r, cy - r*0.3
             self.ghost_shapes[idx].append(self._canvas.create_oval(ex-3, ey-4, ex+3, ey+4, fill="white", outline="white"))

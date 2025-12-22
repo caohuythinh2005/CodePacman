@@ -23,7 +23,6 @@ class BaseDisplay(ABC):
         pass
 
 
-# Renderer interface
 class Renderer(ABC):
     @abstractmethod
     def render(self, state: GameState) -> None:
@@ -31,15 +30,12 @@ class Renderer(ABC):
         pass
 
 
-# Food-specific renderer
 class FoodRenderer(Renderer, ABC):
     @abstractmethod
     def clear_food(self, position: Tuple[int, int]) -> None:
         """Remove food from the given position on the display."""
         pass
 
-
-# Info pane for score/messages
 class InfoPane(ABC):
     @abstractmethod
     def display_score(self, score: float) -> None:

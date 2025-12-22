@@ -33,11 +33,11 @@ class PacmanGame:
                     object_matrix[y, x] = layouts.CAPSULE
                 elif ch == 'P':
                     object_matrix[y, x] = layouts.PACMAN
-                    pacman = AgentInfo(x=x, y=y, dir=2)
+                    pacman = AgentInfo(x=x, y=y, dir="East") 
                 elif ch == 'G':
                     ghost_id = len(ghosts)
                     object_matrix[y, x] = getattr(layouts, f"GHOST{ghost_id+1}", layouts.GHOST1)
-                    ghosts.append(GhostInfo(x=x, y=y, dir=0, scared_timer=0))
+                    ghosts.append(GhostInfo(x=x, y=y, dir="East", scared_timer=0))
                 else:
                     object_matrix[y, x] = layouts.EMPTY
 
@@ -64,13 +64,3 @@ class PacmanGame:
                 self.display.finish()
             return True
         return False
-
-    def draw_ui(self):
-        if self.display:
-            self.display.update(self.state)
-        else:
-            print(f"Score: {self.state.score} | Last actions: {self.last_actions}")
-
-    def update_score(self, delta: float):
-        self.state.score += delta
-        self.draw_ui()

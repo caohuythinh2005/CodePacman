@@ -24,28 +24,36 @@ ui = TkinterDisplay(zoom=1.5, frame_time=0.05)
 game = PacmanGame(MAP_FILE, display=ui)
 
 current_turn_agent = 0
-pending_actions = {}  # agent_idx -> action
-last_executed = {}    # agent_idx -> last action
+pending_actions = {} 
+last_executed = {}    
 
 def handle_action(agent_idx, action):
     global current_turn_agent
     with state_lock:
         if agent_idx != current_turn_agent:
             return
+        
+        print(f"[Server] RAW Action received: {action} | Type: {type(action)}")
+
+        if isinstance(action, list):
+            if len(action) > 0:
+                action = action[0]
+                print(f"[Server] -> Converted list to value: {action}")
+        
         pending_actions[agent_idx] = action
-        print(f"[Server] Action received: agent {agent_idx} -> {action}")
 
 def update_game_tick():
     global current_turn_agent
     with state_lock:
         action = pending_actions.get(current_turn_agent)
-        if action:
+        if action is not None: 
             applied = game.apply_action(current_turn_agent, action)
             if applied:
                 print(f"[Server] Action executed: agent {current_turn_agent} -> {action}")
                 last_executed[current_turn_agent] = action
             else:
-                print(f"[Server] Action ignored: agent {current_turn_agent} -> {action}")
+                print(f"[Server] Action ignored (Illegal): agent {current_turn_agent} -> {action}")
+        
         pending_actions.clear()
         if game.display:
             game.display.update(game.get_state())
