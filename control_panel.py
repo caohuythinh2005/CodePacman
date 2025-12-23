@@ -49,7 +49,6 @@ class ControlPanel(tk.Frame):
         self.columns_container.pack(fill="both", expand=True)
 
     def create_agent_columns(self):
-        """Tạo 3 cột điều khiển cho 3 Agent"""
         for i in range(3):
             col = tk.Frame(self.columns_container, width=220, bg="#fff", highlightthickness=1, highlightbackground="#eee")
             col.pack(side="left", fill="both", expand=True, padx=8)
@@ -142,7 +141,6 @@ class ControlPanel(tk.Frame):
                         pass
 
     def stop_all_workers(self):
-        """Dừng tất cả worker đang chạy"""
         for idx in list(self._algo_procs.keys()):
             self.stop_single_worker(idx)
 

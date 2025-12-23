@@ -20,7 +20,7 @@ if not os.path.isfile(MAP_FILE):
 
 NUM_AGENTS = 3
 state_lock = threading.Lock()
-ui = TkinterDisplay(zoom=1.5, frame_time=0.05)
+ui = TkinterDisplay(zoom=1.5, frame_time=0.001)
 game = PacmanGame(MAP_FILE, display=ui)
 
 current_turn_agent = 0
