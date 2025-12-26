@@ -8,7 +8,7 @@
 
 
 
-### Cài đặt 
+### Cài đặt trong requirements.txt và chạy như bên dưới
 
 1. **Clone**
 2. **python control_panel.py trên 1 CMD**
